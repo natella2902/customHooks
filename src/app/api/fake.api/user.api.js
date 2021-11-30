@@ -52,7 +52,7 @@ const users = [
         bookmark: false
     },
     {
-        _id: "67rdca3eeb7f6fgeed471817",
+        _id: "6193f24234025d4032e65103",
         name: "Боб Келсо",
         profession: professions.doctor,
         qualities: [qualities.buller],
