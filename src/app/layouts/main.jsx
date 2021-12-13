@@ -4,7 +4,6 @@ import useMockData from "../utils/mockData";
 const Main = () => {
     const { initialized, progress, status, error } = useMockData();
     const handleClick = () => {
-        console.log("Загрузка началась...");
         initialized();
     };
     return (

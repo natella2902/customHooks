@@ -7,8 +7,11 @@ import MultiSelectField from "../common/form/multiSelectField";
 import CheckBoxField from "../common/form/checkBoxField";
 import { useProfession } from "../../hooks/useProfession";
 import { useQuality } from "../../hooks/useQuality";
+import { useAuth } from "../../hooks/useAuth";
+import { useHistory } from "react-router-dom";
 
 const RegisterForm = () => {
+    const history = useHistory();
     const [data, setData] = useState({
         email: "",
         password: "",
@@ -17,8 +20,8 @@ const RegisterForm = () => {
         qualities: [],
         licence: false
     });
+    const { signUp } = useAuth();
     const { qualities } = useQuality();
-
     const qualitiesList = qualities.map((q) => ({ label: q.name, value: q._id }));
     const { professions } = useProfession();
     const professionList = professions.map((p) => ({ label: p.name, value: p._id }));
@@ -72,16 +75,24 @@ const RegisterForm = () => {
     const validate = () => {
         const errors = validator(data, validatorConfog);
         setErrors(errors);
-
         return Object.keys(errors).length === 0;
     };
     const isValid = Object.keys(errors).length === 0;
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         const isValid = validate();
         if (!isValid) return;
-        console.log(data);
+        const newData = {
+            ...data,
+            qualities: data.qualities.map((q) => q.value)
+        };
+        try {
+            await signUp(newData);
+            history.push("/");
+        } catch (error) {
+            setErrors(error);
+        }
     };
     return (
         <form onSubmit={handleSubmit}>
