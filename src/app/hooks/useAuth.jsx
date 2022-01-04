@@ -1,19 +1,27 @@
 import React, { useContext, useEffect, useState } from "react";
+import { useHistory } from "react-router-dom";
 import propTypes from "prop-types";
 import axios from "axios";
 import { toast } from "react-toastify";
 import userServices from "../services/user.services";
-import { setTokens } from "../services/localStorage.services";
+import localStorageService from "../services/localStorage.services";
 
-const httpAuth = axios.create();
+export const httpAuth = axios.create({
+    baseURL: "https://identitytoolkit.googleapis.com/v1/",
+    params: {
+        key: process.env.REACT_APP_FIREBASE_KEY
+    }
+});
 const AuthContext = React.createContext();
 export const useAuth = () => {
     return useContext(AuthContext);
 };
 
 export const AuthProvider = ({ children }) => {
-    const [currentUser, setUser] = useState({});
+    const history = useHistory();
+    const [currentUser, setUser] = useState();
     const [error, setError] = useState(null);
+    const [isLoading, setLoading] = useState(true);
     useEffect(() => {
         if (error !== null) {
             toast.error(error);
@@ -21,12 +29,52 @@ export const AuthProvider = ({ children }) => {
         }
     }, [error]);
 
-    async function signUp({ email, password, ...rest }) {
-        const url = `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${process.env.REACT_APP_FIREBASE_KEY}`;
+    async function getUserData() {
         try {
-            const { data } = await httpAuth.post(url, { email, password, returnSecureToken: true });
-            setTokens(data);
-            await createUser({ _id: data.localId, email, ...rest });
+            const { content } = await userServices.getCurrentUser();
+            setUser(content);
+        } catch (error) {
+            catcherErrors(error);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    useEffect(() => {
+        if (localStorageService.getAccessToken()) {
+            getUserData();
+        } else {
+            setLoading(false);
+        }
+    }, []);
+
+    function randomInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1) + min);
+    };
+
+    function logOut() {
+        localStorageService.removeAuthData();
+        setUser(null);
+        history.push("/");
+    };
+
+    async function signUp({ email, password, ...rest }) {
+        // const url = `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${process.env.REACT_APP_FIREBASE_KEY}`;
+        try {
+            const { data } = await httpAuth.post(`accounts:signUp`, { email, password, returnSecureToken: true });
+            localStorageService.setTokens(data);
+            await createUser({
+                _id: data.localId,
+                email,
+                rate: randomInt(1, 5),
+                completedMeetings: randomInt(0, 200),
+                image: `https://avatars.dicebear.com/api/avataaars/${(
+                    Math.random() + 1
+                )
+                    .toString(36)
+                    .substring(7)}.svg`,
+                ...rest
+            });
         } catch (error) {
             catcherErrors(error);
             const { code, message } = error.response.data.error;
@@ -42,10 +90,11 @@ export const AuthProvider = ({ children }) => {
     };
 
     async function signIn({ email, password }) {
-        const url = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${process.env.REACT_APP_FIREBASE_KEY}`;
+        // const url = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${process.env.REACT_APP_FIREBASE_KEY}`;
         try {
-            const { data } = await axios.post(url, { email, password, returnSecureToken: true });
-            setTokens(data);
+            const { data } = await httpAuth.post(`accounts:signInWithPassword`, { email, password, returnSecureToken: true });
+            localStorageService.setTokens(data);
+            await getUserData();
         } catch (error) {
             catcherErrors(error);
             const { code, message } = error.response.data.error;
@@ -63,7 +112,7 @@ export const AuthProvider = ({ children }) => {
                     throw errorObject;
                 }
             }
-        };
+        }
     }
 
     async function createUser(data) {
@@ -75,14 +124,24 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    async function updateUser(data) {
+        try {
+            const { content } = await userServices.update(data);
+            setUser((prevState) => ({ ...prevState, content }));
+            setLoading(false);
+        } catch (error) {
+            catcherErrors(error);
+        }
+    };
+
     function catcherErrors(error) {
         const { message } = error.response.data;
         setError(message);
     }
 
     return (
-        <AuthContext.Provider value={{ signUp, signIn, currentUser }}>
-            { children }
+        <AuthContext.Provider value={{ signUp, signIn, currentUser, logOut, updateUser }}>
+            { !isLoading ? children : "Loading..." }
         </AuthContext.Provider>
     );
 };

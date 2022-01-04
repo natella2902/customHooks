@@ -13,6 +13,7 @@ import { useHistory } from "react-router-dom";
 const RegisterForm = () => {
     const history = useHistory();
     const [data, setData] = useState({
+        name: "",
         email: "",
         password: "",
         profession: "",
@@ -34,6 +35,15 @@ const RegisterForm = () => {
         }));
     };
     const validatorConfog = {
+        name: {
+            isRequired: {
+                message: "Имя обязательно для заполнения"
+            },
+            min: {
+                message: "Имя должно состаять минимум из 2 символов",
+                value: 3
+            }
+        },
         email: {
             isRequired: {
                 message: "Электронная почта обязательна для заполнения"
@@ -53,7 +63,7 @@ const RegisterForm = () => {
                 message: "Пароль должен содержать хотя бы одно число"
             },
             min: {
-                message: "Пароль должен состаять миниму из 8 символов",
+                message: "Пароль должен состаять минимум из 8 символов",
                 value: 8
             }
         },
@@ -97,6 +107,13 @@ const RegisterForm = () => {
     return (
         <form onSubmit={handleSubmit}>
             <TextField
+                label="Введите ваше имя"
+                name="name"
+                value={data.name}
+                onChange={handleChange}
+                error={errors.name}
+            />
+            <TextField
                 label="Электронная почта"
                 name="email"
                 value={data.email}
@@ -135,7 +152,7 @@ const RegisterForm = () => {
                 options={qualitiesList}
                 onChange={handleChange}
                 name="qualities"
-                label="Выберите ваши качесвта"
+                label="Выберите ваши качества"
             />
             <CheckBoxField
                 value={data.licence}

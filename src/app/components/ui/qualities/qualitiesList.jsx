@@ -14,7 +14,7 @@ const QualitiesList = ({ qualities }) => {
             </>
         );
     } else {
-        return (<p>Loading...</p>);
+        return (<>Loading...</>);
     };
 };
 
